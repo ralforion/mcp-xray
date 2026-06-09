@@ -1,0 +1,9 @@
+{
+  "serverName": "overlapping",
+  "tools": [
+    {"name": "get_user", "description": "Retrieve a user record by its unique identifier.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "get_account", "description": "Retrieve an account record by its unique identifier.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "fetch_customer", "description": "Retrieve a customer record by its unique identifier.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "lookup_member", "description": "Retrieve a member record by its unique identifier.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}}
+  ]
+}

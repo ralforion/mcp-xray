@@ -1,0 +1,146 @@
+{
+  "serverName": "bloated",
+  "tools": [
+    {
+      "name": "run",
+      "description": "do stuff",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "d",
+              "e",
+              "f",
+              "g",
+              "h",
+              "i",
+              "j",
+              "k",
+              "l",
+              "m",
+              "n",
+              "o",
+              "p"
+            ]
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "nested": {
+                "type": "object",
+                "properties": {
+                  "deeper": {
+                    "type": "object",
+                    "properties": {
+                      "deepest": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "p1": {
+            "type": "string"
+          },
+          "p2": {
+            "type": "string"
+          },
+          "p3": {
+            "type": "string"
+          },
+          "p4": {
+            "type": "string"
+          },
+          "p5": {
+            "type": "string"
+          },
+          "p6": {
+            "type": "string"
+          },
+          "p7": {
+            "type": "string"
+          },
+          "p8": {
+            "type": "string"
+          },
+          "p9": {
+            "type": "string"
+          },
+          "p10": {
+            "type": "string"
+          },
+          "p11": {
+            "type": "string"
+          },
+          "p12": {
+            "type": "string"
+          },
+          "p13": {
+            "type": "string"
+          },
+          "p14": {
+            "type": "string"
+          },
+          "p15": {
+            "type": "string"
+          },
+          "p16": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "x",
+      "description": "",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "process_data",
+      "description": "process",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "region": {
+            "type": "string",
+            "enum": [
+              "us-east-1",
+              "us-east-2",
+              "us-west-1",
+              "us-west-2",
+              "eu-west-1",
+              "eu-west-2",
+              "eu-central-1",
+              "ap-south-1",
+              "ap-northeast-1",
+              "ap-southeast-1",
+              "ap-southeast-2",
+              "sa-east-1",
+              "ca-central-1",
+              "af-south-1"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "serverName": "Acme Catalog (synthetic test server)",
+  "tools": [
+    {"name": "open_session", "description": "Open a working session by id, entering the active phase.", "inputSchema": {"type": "object", "properties": {"session_id": {"type": "string"}}, "required": ["session_id"]}},
+    {"name": "close_session", "description": "Close a session; returns to the setup phase when none remain.", "inputSchema": {"type": "object", "properties": {"session_id": {"type": "string"}}, "required": ["session_id"]}},
+    {"name": "run_batch", "description": "Run a batch of operations described by a manifest in one call.", "inputSchema": {"type": "object", "properties": {"manifest": {"type": "string"}}, "required": ["manifest"]}},
+    {"name": "get_reference", "description": "Return the catalog definition-language reference document.", "inputSchema": {"type": "object", "properties": {"section": {"type": "string"}}}},
+    {"name": "list_formats", "description": "List the export/import formats supported by the catalog.", "inputSchema": {"type": "object", "properties": {}}},
+    {"name": "import_config", "description": "Import a catalog definition from an interchange format.", "inputSchema": {"type": "object", "properties": {"source": {"type": "string"}}, "required": ["source"]}},
+    {"name": "export_config", "description": "Export a catalog definition to an interchange format.", "inputSchema": {"type": "object", "properties": {"target": {"type": "string"}}, "required": ["target"]}}
+  ]
+}

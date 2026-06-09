@@ -1,0 +1,21 @@
+{
+  "serverName": "Acme Catalog (synthetic test server)",
+  "tools": [
+    {"name": "open_session", "description": "Open a working session by id, entering the active phase.", "inputSchema": {"type": "object", "properties": {"session_id": {"type": "string"}}, "required": ["session_id"]}},
+    {"name": "close_session", "description": "Close a session; returns to the setup phase when none remain.", "inputSchema": {"type": "object", "properties": {"session_id": {"type": "string"}}, "required": ["session_id"]}},
+    {"name": "run_batch", "description": "Run a batch of operations described by a manifest in one call.", "inputSchema": {"type": "object", "properties": {"manifest": {"type": "string"}}, "required": ["manifest"]}},
+    {"name": "get_item", "description": "Get the active item's definition.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}}}},
+    {"name": "describe_item", "description": "Describe an item's entries, fields and relations.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}}}},
+    {"name": "get_item_diagram", "description": "Return a diagram of the item's entries and relations.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "format": {"type": "string"}}}},
+    {"name": "list_entries", "description": "List entries (fields, measures, metrics) defined in an item.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "kind": {"type": "string"}}}},
+    {"name": "find_entries", "description": "Search entries in an item by free-text query across names and descriptions.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "query": {"type": "string"}}, "required": ["query"]}},
+    {"name": "explain_entry", "description": "Explain the lineage of an entry: the composition chain down to underlying sources and columns.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "name": {"type": "string"}}, "required": ["name"]}},
+    {"name": "run_query", "description": "Compile and execute a query against the active item, returning SQL and results.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "dimensions": {"type": "array", "items": {"type": "string"}}, "measures": {"type": "array", "items": {"type": "string"}}, "fields": {"type": "array", "items": {"type": "string"}}, "where": {"type": "string"}, "having": {"type": "string"}, "order_by": {"type": "string"}, "limit": {"type": "integer"}, "offset": {"type": "integer"}, "query_json": {"type": "string"}, "output_format": {"type": "string"}, "dialect": {"type": "string"}, "locale": {"type": "string"}, "timezone": {"type": "string"}}}},
+    {"name": "list_examples", "description": "List canonical example queries authored alongside the item.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "intent": {"type": "string"}}}},
+    {"name": "get_example", "description": "Get a single example query by name with its payload and compiled SQL preview.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "name": {"type": "string"}}, "required": ["name"]}},
+    {"name": "get_dependency_graph", "description": "Get the item's entry dependency graph.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}}}},
+    {"name": "get_relation_graph", "description": "Get the item's source relation graph.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}}}},
+    {"name": "query_graph", "description": "Query the item graph using a graph-query expression.", "inputSchema": {"type": "object", "properties": {"item_id": {"type": "string"}, "expr": {"type": "string"}}, "required": ["expr"]}},
+    {"name": "list_items", "description": "List items currently open in the session.", "inputSchema": {"type": "object", "properties": {}}}
+  ]
+}

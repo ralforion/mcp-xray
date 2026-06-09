@@ -1,0 +1,10 @@
+# Phase manifest for a phase-swapped MCP surface (mcp-xray analyze --phases).
+# Each phase points at a tools-json dump captured while the server was in that
+# phase. Paths are relative to this manifest. This is a SYNTHETIC test server
+# (Acme Catalog) -- a generic stand-in for any server that swaps its tool list
+# by journey phase:
+#   setup phase  = always-tools + setup-only tools
+#   active phase = always-tools + active-only tools
+phases:
+  setup: setup.json
+  active: active.json

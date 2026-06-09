@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-xray"
+version = "1.4.0"
+description = "One field instrument for MCP server reviews: token tax, behavioral noise, capability reduction -> one graded report."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "BUSL-1.1" }
+authors = [{name = "Ralf Becher, RALFORION d.o.o.", email = "ralf.becher@web.de"}]
+keywords = ["mcp", "model-context-protocol", "audit", "tokens", "tool-design"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+
+# Core deps are intentionally light so the offline static + consolidation
+# half runs with no API key and no live server.
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ralfbecher/mcp-xray"
+Repository = "https://github.com/ralfbecher/mcp-xray"
+Issues = "https://github.com/ralfbecher/mcp-xray/issues"
+
+[project.optional-dependencies]
+# Authoritative token counting + LLM behavioral probes (Anthropic).
+api = ["anthropic>=0.40"]
+# OpenAI vendor: local tiktoken counting + chat.completions behavioral probe.
+openai = ["openai>=1.40", "tiktoken>=0.7"]
+# Live stdio/sse/http transports.
+live = ["mcp>=1.0"]
+all = ["anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
+dev = ["pytest>=8.0", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
+
+[project.scripts]
+mcp-xray = "mcp_xray.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

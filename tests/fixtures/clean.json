@@ -1,0 +1,8 @@
+{
+  "serverName": "weather",
+  "tools": [
+    {"name": "get_current_weather", "description": "Return the current weather conditions for a specified geographic location given by latitude and longitude.", "inputSchema": {"type": "object", "properties": {"lat": {"type": "number"}, "lon": {"type": "number"}}, "required": ["lat", "lon"]}},
+    {"name": "get_forecast", "description": "Return a multi-day weather forecast for a location, including temperature highs, lows, and precipitation probability.", "inputSchema": {"type": "object", "properties": {"lat": {"type": "number"}, "lon": {"type": "number"}, "days": {"type": "integer"}}, "required": ["lat", "lon"]}},
+    {"name": "list_weather_alerts", "description": "List active severe-weather alerts issued for a given region by its official region code.", "inputSchema": {"type": "object", "properties": {"region_code": {"type": "string"}}, "required": ["region_code"]}}
+  ]
+}

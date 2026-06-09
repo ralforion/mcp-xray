@@ -1,0 +1,15 @@
+# Labeled golden queries for the M3 selection harness (mcp-xray analyze --queries).
+# Each query lists the tool(s) a correct agent should select. Selection is
+# non-deterministic even at temperature 0, so the probe runs N samples and
+# reports a pass rate, not a boolean.
+queries:
+  - query: "create a new label called Work"
+    expected_tools: [create_label]
+  - query: "rename the label 'Old' to 'Archive'"
+    expected_tools: [update_label]
+  - query: "find all emails about the quarterly budget"
+    expected_tools: [search_threads]
+  - query: "show me the messages in thread abc123"
+    expected_tools: [get_thread]
+  - query: "delete the thread abc123 permanently"
+    expected_tools: [delete_thread]

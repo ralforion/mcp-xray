@@ -1,0 +1,7 @@
+{
+  "tools": [
+    {"name": "create_label", "overhead_tokens": 118, "schema_tokens": 60, "description_tokens": 40, "note": "ok"},
+    {"name": "search_threads", "overhead_tokens": 205, "schema_tokens": 120, "description_tokens": 55, "note": "heavy schema"}
+  ],
+  "summary": {"total": 323, "recommendation": "consolidate label tools"}
+}

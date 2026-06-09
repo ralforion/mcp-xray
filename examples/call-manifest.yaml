@@ -1,0 +1,11 @@
+# Operator-confirmed SAFE calls for result-size probing (mcp-xray --call-manifest).
+#
+# RULE (PLAN S5/S9): mcp-xray NEVER calls a client's tool without an explicit,
+# operator-supplied manifest. The name-based read-only heuristic is advisory
+# only -- it never authorizes a call. Every entry here is an assertion by YOU
+# that the call is read-only or sandboxed and safe to execute.
+calls:
+  - tool: list_labels
+    args: {}
+  - tool: get_thread
+    args: { id: "SAFE_SANDBOX_THREAD_ID" }

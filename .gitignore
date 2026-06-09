@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runs (fingerprinted audit outputs) -- scratch top-level dir.
+/runs/
+
+# Per-server engagement data -- local only, never committed (public repo).
+/profiles/
+
+# Internal design / planning docs -- local only.
+/design/
+
+# Secrets / local config (committed: .env.template)
+.env
+.env.local
+
+# Behavioral-probe resume cache (transient; --resume)
+.probe-cache/
+
+# OS
+.DS_Store

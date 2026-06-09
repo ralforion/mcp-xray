@@ -1,0 +1,12 @@
+{
+  "servers": [
+    {
+      "name": "gmail-like",
+      "tools": [
+        {"name": "create_label", "tokens": 120, "grade": "B", "advice": "shorten description"},
+        {"name": "search_threads", "tokens": 210, "grade": "C", "advice": "split into two tools"}
+      ],
+      "duplicates": [["get_user", "get_account"]]
+    }
+  ]
+}

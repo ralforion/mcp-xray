@@ -1,0 +1,18 @@
+{
+  "serverName": "gmail-like",
+  "instructions": "You are an email assistant. Always confirm before sending. Use labels to organize threads. When searching, prefer narrow queries.",
+  "tools": [
+    {"name": "create_label", "description": "Create a new label in the mailbox with the given name and optional color.", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "color": {"type": "string"}}, "required": ["name"]}},
+    {"name": "update_label", "description": "Update an existing label's name or color by its id.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "color": {"type": "string"}}, "required": ["id"]}},
+    {"name": "delete_label", "description": "Delete a label from the mailbox by its id.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "list_labels", "description": "List all labels currently defined in the mailbox.", "inputSchema": {"type": "object", "properties": {}}},
+    {"name": "get_label", "description": "Get a single label's details by its id.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "create_thread", "description": "Create a new email thread by sending an initial message.", "inputSchema": {"type": "object", "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}}, "required": ["to", "subject", "body"]}},
+    {"name": "update_thread", "description": "Update a thread's metadata such as labels or read state by id.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "labels": {"type": "array", "items": {"type": "string"}}, "read": {"type": "boolean"}}, "required": ["id"]}},
+    {"name": "delete_thread", "description": "Delete an email thread permanently by its id.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "list_threads", "description": "List threads in the mailbox, optionally filtered by label.", "inputSchema": {"type": "object", "properties": {"label": {"type": "string"}, "limit": {"type": "integer"}}}},
+    {"name": "get_thread", "description": "Get a single thread and its messages by id.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "search_threads", "description": "Search threads by free-text query across subject and body.", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["query"]}},
+    {"name": "send_message", "description": "Send a reply message into an existing thread.", "inputSchema": {"type": "object", "properties": {"thread_id": {"type": "string"}, "body": {"type": "string"}}, "required": ["thread_id", "body"]}}
+  ]
+}
