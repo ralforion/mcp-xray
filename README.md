@@ -13,9 +13,9 @@ report** that answers three questions:
 
 1. **What does this surface cost?** Per-turn context tax, per tool, before any work.
 2. **Does the surface confuse the model?** Wrong-tool selection, spurious firing on off-domain tasks.
-3. **Can the surface be smaller?** Which tools merge, which should be MCP *resources*, and whether the real fix is consolidation or just-in-time loading.
+3. **Can the surface be smaller?** Which tools merge, which should be MCP _resources_, and whether the real fix is consolidation or just-in-time loading.
 
-Many sensors, **one voice**: wrapped tools contribute *measurements only*; the
+Many sensors, **one voice**: wrapped tools contribute _measurements only_; the
 grading engine owns all interpretation.
 
 **See real output:** [example reports](examples/reports/) - full `mcp-xray`
@@ -77,12 +77,12 @@ re-capture - e.g. `mcp-xray analyze --phases runs/<version>/dumps/phases.yaml`.
 
 Per-probe deep-dives live in [`docs/`](docs/README.md).
 
-| Probe | Owned? | Needs | Emits |
-|---|---|---|---|
-| `static_hygiene` | owned (authoritative) | inventory | per-tool token cost (leave-one-out), hidden injectors, schema smells - see [`docs/static-hygiene-probe.md`](docs/static-hygiene-probe.md) |
-| `consolidate` | owned | inventory | merge candidates, resource candidates, JIT framing - see [`docs/consolidation-probe.md`](docs/consolidation-probe.md) & [`merge-candidates.md`](docs/merge-candidates.md) |
-| `noise` | owned | LLM + key | selection accuracy / confusability proxy / distraction - see [`docs/behavioral-probe.md`](docs/behavioral-probe.md) |
-| `mcp_checkup`, `token_analyzer` | wrapped (v0.2) | external bin + config | token cost, duplicates - *measurements only* |
+| Probe                           | Owned?                | Needs                 | Emits                                                                                                                                                                     |
+| ------------------------------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `static_hygiene`                | owned (authoritative) | inventory             | per-tool token cost (leave-one-out), hidden injectors, schema smells - see [`docs/static-hygiene-probe.md`](docs/static-hygiene-probe.md)                                 |
+| `consolidate`                   | owned                 | inventory             | merge candidates, resource candidates, JIT framing - see [`docs/consolidation-probe.md`](docs/consolidation-probe.md) & [`merge-candidates.md`](docs/merge-candidates.md) |
+| `noise`                         | owned                 | LLM + key             | selection accuracy / confusability proxy / distraction - see [`docs/behavioral-probe.md`](docs/behavioral-probe.md)                                                       |
+| `mcp_checkup`, `token_analyzer` | wrapped (v0.2)        | external bin + config | token cost, duplicates - _measurements only_                                                                                                                              |
 
 Skipped probes drop their weight and are reported **"not measured,"** never
 scored zero. The authoritative per-tool token figure is computed in-house via
@@ -138,8 +138,8 @@ after). A single `tools/list` snapshot can't see a swap, so point mcp-xray at a
 ```yaml
 # phases.yaml
 phases:
-  design: design.json   # tools visible before a model is loaded
-  run:    run.json      # tools visible once a model is loaded
+  design: design.json # tools visible before a model is loaded
+  run: run.json # tools visible once a model is loaded
 ```
 
 ```bash
@@ -147,6 +147,7 @@ mcp-xray analyze --phases phases.yaml
 ```
 
 The phased report:
+
 - **Headline tax = the worst phase**, not the union - the model only ever carries one phase at a time, so it's not charged for tools it never co-loads.
 - **Per-phase surface table** + **carried tools** (those visible in more than one phase = the cross-phase cost).
 - **Union analysis** - every distinct tool still gets schema-hygiene + consolidation review.
@@ -244,9 +245,11 @@ living.
 
 Copyright 2025 [RALFORION d.o.o.](https://ralforion.com)
 
-Licensed under the [Business Source License 1.1](LICENSE). The Licensed Work will convert to Apache License 2.0 on 2030-03-16.
+Licensed under the [Business Source License 1.1](LICENSE). The Licensed Work will convert to Apache License 2.0 on 2030-06-09.
 
 By contributing to this project, you agree to the [Contributor License Agreement](CLA.md).
+
+For commercial licensing inquiries, contact: licensing@ralforion.com
 
 ---
 
