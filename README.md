@@ -50,6 +50,10 @@ mcp-xray analyze --tools-json dump.json --token-backend api --model claude-sonne
 # Live server, full audit including behavioral probe
 ANTHROPIC_API_KEY=... mcp-xray analyze --stdio "gmail-mcp serve" --llm --model claude-sonnet-4-6
 
+# Authed HTTP/SSE server -> pass a bearer token (repeatable --header). Prefer the
+# MCP_XRAY_HTTP_HEADER env var so the token stays out of ps/shell history.
+mcp-xray analyze --http https://server.example/mcp --header "Authorization: Bearer $TOKEN"
+
 # With the client's labeled golden queries -> labeled selection accuracy
 mcp-xray analyze --stdio "gmail-mcp serve" --llm --model claude-sonnet-4-6 --queries golden.yaml
 
