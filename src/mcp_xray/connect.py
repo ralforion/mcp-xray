@@ -325,9 +325,12 @@ def result_sizes_stdio(command: str, calls: list[dict]) -> list[dict]:
     return measure_result_sizes(_stdio_factory(command), calls, transport="stdio", source=command)
 
 
-def result_sizes_http(url: str, calls: list[dict], *, sse: bool = False) -> list[dict]:
+def result_sizes_http(
+    url: str, calls: list[dict], *, sse: bool = False, headers: dict | None = None
+) -> list[dict]:
     return measure_result_sizes(
-        _http_factory(url, sse=sse), calls, transport="sse" if sse else "http", source=url
+        _http_factory(url, sse=sse, headers=headers),
+        calls, transport="sse" if sse else "http", source=url,
     )
 
 
@@ -335,7 +338,10 @@ def capture_phases_stdio(command: str, spec: list[dict]) -> dict[str, Inventory]
     return capture_phases(_stdio_factory(command), spec, transport="stdio", source=command)
 
 
-def capture_phases_http(url: str, spec: list[dict], *, sse: bool = False) -> dict[str, Inventory]:
+def capture_phases_http(
+    url: str, spec: list[dict], *, sse: bool = False, headers: dict | None = None
+) -> dict[str, Inventory]:
     return capture_phases(
-        _http_factory(url, sse=sse), spec, transport="sse" if sse else "http", source=url
+        _http_factory(url, sse=sse, headers=headers),
+        spec, transport="sse" if sse else "http", source=url,
     )

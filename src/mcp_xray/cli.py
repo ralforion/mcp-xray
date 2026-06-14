@@ -29,15 +29,36 @@ from .validate import validate
 
 
 # --- shared loaders ------------------------------------------------------
+def _parse_headers(args) -> dict | None:
+    """Collect auth/custom HTTP headers for live HTTP/SSE transports from
+    repeatable ``--header "Name: value"`` flags, plus the ``MCP_XRAY_HTTP_HEADER``
+    env fallback (one ``Name: value`` per line). Used to reach authed MCP servers
+    (e.g. ``--header "Authorization: Bearer <token>"``). Returns None when empty."""
+    raw: list[str] = list(getattr(args, "header", None) or [])
+    env = os.environ.get("MCP_XRAY_HTTP_HEADER")
+    if env:
+        raw.extend(line for line in env.splitlines() if line.strip())
+    headers: dict[str, str] = {}
+    for item in raw:
+        if ":" not in item:
+            raise SystemExit(f'error: --header must be "Name: value", got {item!r}')
+        name, _, value = item.partition(":")
+        name = name.strip()
+        if not name:
+            raise SystemExit(f'error: --header has empty name: {item!r}')
+        headers[name] = value.strip()
+    return headers or None
+
+
 def _load_inventory(args) -> Inventory:
     if getattr(args, "tools_json", None):
         return connect.from_tools_json(args.tools_json)
     if getattr(args, "stdio", None):
         return connect.from_stdio(args.stdio)
     if getattr(args, "http", None):
-        return connect.from_http(args.http, sse=False)
+        return connect.from_http(args.http, sse=False, headers=_parse_headers(args))
     if getattr(args, "sse", None):
-        return connect.from_http(args.sse, sse=True)
+        return connect.from_http(args.sse, sse=True, headers=_parse_headers(args))
     raise SystemExit("error: one of --tools-json / --stdio / --http / --sse is required")
 
 
@@ -165,9 +186,9 @@ def _measure_result_sizes(args, manifest: list[dict], result) -> list[Finding]:
         if args.stdio:
             measures = connect.result_sizes_stdio(args.stdio, manifest)
         elif args.http:
-            measures = connect.result_sizes_http(args.http, manifest)
+            measures = connect.result_sizes_http(args.http, manifest, headers=_parse_headers(args))
         else:  # sse
-            measures = connect.result_sizes_http(args.sse, manifest, sse=True)
+            measures = connect.result_sizes_http(args.sse, manifest, sse=True, headers=_parse_headers(args))
     except Exception as e:  # connection/protocol failure - degrade, don't crash
         print(f"[warn] result-size probing failed: {e}", file=sys.stderr)
         return []
@@ -327,9 +348,9 @@ def cmd_capture_phases(args) -> int:
         if args.stdio:
             phase_invs = connect.capture_phases_stdio(args.stdio, spec)
         elif args.http:
-            phase_invs = connect.capture_phases_http(args.http, spec)
+            phase_invs = connect.capture_phases_http(args.http, spec, headers=_parse_headers(args))
         else:
-            phase_invs = connect.capture_phases_http(args.sse, spec, sse=True)
+            phase_invs = connect.capture_phases_http(args.sse, spec, sse=True, headers=_parse_headers(args))
     except BaseException as e:  # noqa: BLE001 - anyio wraps errors in ExceptionGroup
         # Surface the root cause cleanly instead of a task-group traceback. The
         # common case: an advance tool (e.g. load_model) isn't exposed because
@@ -398,6 +419,13 @@ def _add_source_args(p, *, transports=True):
         p.add_argument("--stdio", help='spawn a local MCP server, e.g. "gmail-mcp serve"')
         p.add_argument("--http", help="streamable HTTP MCP endpoint URL")
         p.add_argument("--sse", help="SSE MCP endpoint URL")
+        p.add_argument(
+            "--header",
+            action="append",
+            metavar='"Name: value"',
+            help='extra HTTP header for --http/--sse, repeatable; for authed servers '
+                 'e.g. --header "Authorization: Bearer <token>" (also MCP_XRAY_HTTP_HEADER env)',
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:
