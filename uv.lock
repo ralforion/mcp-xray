@@ -525,7 +525,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-xray"
+name = "mcp-xray-audit"
 version = "1.4.0"
 source = { editable = "." }
 dependencies = [
