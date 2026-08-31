@@ -47,7 +47,11 @@ all = ["anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
 # The ruff pin lives here and nowhere else: CI installs this extra rather than
 # naming a version in a `run:` step, which Dependabot cannot see or update.
 lint = ["ruff==0.16.5"]
-dev = ["pytest>=8.0", "mcp-xray-audit[lint]", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
+# `packaging` is here for scripts/third_party_notices.py, which evaluates
+# dependency markers with it. Declared and locked rather than pip-installed in
+# a CI step: the venv uv builds has no pip, and an unpinned install in a `run:`
+# block is one Dependabot cannot see.
+dev = ["pytest>=8.0", "mcp-xray-audit[lint]", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0", "packaging>=24.0"]
 
 [project.scripts]
 mcp-xray = "mcp_xray.cli:main"

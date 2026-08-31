@@ -76,9 +76,7 @@ jobs:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/licence-venv
         run: uv sync --locked --all-extras
       - name: Licence policy
-        run: |
-          "$RUNNER_TEMP/licence-venv/bin/python" -m pip install -q packaging
-          "$RUNNER_TEMP/licence-venv/bin/python" scripts/third_party_notices.py --check
+        run: '"$RUNNER_TEMP/licence-venv/bin/python" scripts/third_party_notices.py --check'
 
   pins:
     name: pins
