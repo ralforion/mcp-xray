@@ -53,6 +53,31 @@ jobs:
       - name: Ruff check
         run: ruff check src tests
 
+  # Not a notice check: nothing mcp-xray publishes redistributes its
+  # dependencies, so no notice file is committed and there is nothing to drift.
+  # This is the licence gate — a dependency whose terms are neither permissive
+  # nor written up in ACKNOWLEDGED fails here, so taking one on stays a decision
+  # somebody records rather than something a version bump carries in.
+  #
+  # Runs with every extra installed: the closure that matters is what a user gets
+  # from `pip install mcp-xray-audit[all]`, not the bare runtime one.
+  licences:
+    name: licences
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install -q uv
+      - name: Resolve the closure
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/licence-venv
+        run: uv sync --locked --all-extras
+      - name: Licence policy
+        run: '"$RUNNER_TEMP/licence-venv/bin/python" scripts/third_party_notices.py --check'
+
   pins:
     name: pins
     runs-on: ubuntu-latest
