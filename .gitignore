@@ -33,3 +33,10 @@ htmlcov/
 
 # OS
 .DS_Store
+
+# Produced on demand by scripts/third_party_notices.py for a look at the
+# dependency licence picture. Not tracked: nothing mcp-xray publishes
+# redistributes those packages, so the file is documentation rather than a
+# notice anyone is owed, and committing it would churn on every bump. CI runs
+# the same script as a licence gate, which is the half that earns its keep.
+THIRD_PARTY_NOTICES.md

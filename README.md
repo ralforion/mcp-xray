@@ -281,6 +281,33 @@ Licensed under the [Business Source License 1.1](LICENSE). The Licensed Work wil
 
 By contributing to this project, you agree to the [Contributor License Agreement](CLA.md).
 
+### Third-party dependencies
+
+The runtime dependency is PyYAML; the `api`, `openai` and `live` extras add the
+Anthropic, OpenAI and MCP client libraries and their own dependencies. Across
+that closure everything is permissive — MIT, BSD, Apache-2.0, ISC, PSF-2.0 —
+with two MPL-2.0 exceptions, `certifi` and `tqdm`, both reached through the
+extras.
+
+There is no `THIRD-PARTY-NOTICES.md` here, and that is deliberate rather than an
+omission. The attribution clauses in those licences attach when you *distribute*
+the software, and mcp-xray distributes none of it: it publishes a wheel, and a
+wheel that declares a dependency hands over no copy of it — pip fetches each one
+from PyPI onto your machine, under terms between you and its authors. A notice
+file would be several thousand lines of licence text nobody is owed, rewritten
+on every dependency bump.
+
+What is kept is the check behind it. `scripts/third_party_notices.py --check`
+runs in CI and fails when any dependency's licence is neither permissive nor
+written up with the reason it was accepted, so a copyleft dependency has to be a
+decision somebody records rather than something that arrives with a Dependabot
+bump. Run it without `--check` to write the full picture out locally; the result
+is gitignored.
+
+If mcp-xray ever ships a container image, this stops being true — set
+`PUBLISHES_IMAGE` and `COMMIT_NOTICE` in that script and the same code produces
+the notice that would then be owed.
+
 For commercial licensing inquiries, contact: licensing@ralforion.com
 
 ---
