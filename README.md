@@ -277,7 +277,8 @@ living.
 
 Copyright 2026 [RALFORION d.o.o.](https://ralforion.com)
 
-Licensed under the [Business Source License 1.1](LICENSE). The Licensed Work will convert to Apache License 2.0 on 2030-06-09.
+Licensed under the [Business Source License 1.1](LICENSE). The Licensed Work will convert to Apache License 2.0 on 2030-03-16, the
+Change Date in [LICENSE](LICENSE).
 
 By contributing to this project, you agree to the [Contributor License Agreement](CLA.md).
 
