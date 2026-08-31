@@ -7,7 +7,15 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # A group covers version updates only unless it says otherwise, which is
+      # why four security advisories arrived as four separate PRs. Security
+      # updates need their own group to be batched the same way.
       python-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      python-security:
+        applies-to: security-updates
         patterns:
           - "*"
 
@@ -19,5 +27,10 @@ updates:
     open-pull-requests-limit: 5
     groups:
       github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      github-actions-security:
+        applies-to: security-updates
         patterns:
           - "*"
