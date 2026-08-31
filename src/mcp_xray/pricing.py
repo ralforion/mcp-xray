@@ -63,7 +63,7 @@ DEFAULT_INPUT_COST_PER_MTOK = 3.0
 # "$N / MTok" cell - the Base Input Tokens column on the rendered page.
 _ANTHROPIC_ROW = re.compile(
     r">Claude (Opus|Sonnet|Haiku) ([0-9.]+)[^<]*</td>\s*<td[^>]*>\$([0-9.]+) / MTok",
-    re.S,
+    re.DOTALL,
 )
 
 # OpenAI: the pricing page serializes each row as
@@ -123,7 +123,7 @@ def parse_openai_prices(html: str) -> dict[str, float]:
     out: dict[str, float] = {}
     for name, inp in _OPENAI_ROW.findall(text):
         n = name.lower()
-        if not vendor_for(n) == OPENAI or _OPENAI_SNAPSHOT.search(n):
+        if vendor_for(n) != OPENAI or _OPENAI_SNAPSHOT.search(n):
             continue
         out.setdefault(n, float(inp))
     return out

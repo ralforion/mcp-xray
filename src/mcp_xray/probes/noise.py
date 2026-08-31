@@ -222,8 +222,8 @@ class NoiseProbe(Probe):
         out: dict = {}
         try:
             with open(path) as f:
-                for line in f:
-                    line = line.strip()
+                for raw in f:
+                    line = raw.strip()
                     if not line:
                         continue
                     try:

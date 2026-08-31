@@ -44,13 +44,43 @@ openai = ["openai>=1.40", "tiktoken>=0.7"]
 # Live stdio/sse/http transports.
 live = ["mcp>=1.0"]
 all = ["anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
-dev = ["pytest>=8.0", "ruff==0.15.22", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
+# The ruff pin lives here and nowhere else: CI installs this extra rather than
+# naming a version in a `run:` step, which Dependabot cannot see or update.
+lint = ["ruff==0.16.5"]
+dev = ["pytest>=8.0", "mcp-xray-audit[lint]", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
 
 [project.scripts]
 mcp-xray = "mcp_xray.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+# Selected explicitly rather than inherited. Ruff's defaults are not a stable
+# contract: 0.16 widened them and turned CI red on code nobody had touched.
+# Adding a rule here is a deliberate act, the same way a pinned Action SHA is.
+#
+# Deliberately not selected: BLE (blind except), S110/S112 (try-except-pass or
+# -continue) and TRY. Probes and transports catch Exception on purpose - a
+# server that does not implement list_prompts, a corrupt cache line, a parse
+# failure in a wrapped adapter - because the design invariant is that a sensor
+# degrades to "not measured" and never crashes the audit. Narrowing those
+# catches would break that on purpose, and 24 noqa comments would only restate
+# it. TRY004 would likewise turn a malformed tools-json file into a TypeError
+# where ValueError is the honest answer.
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "C4", "SIM", "ISC", "RUF", "PLE", "PLW"]
+# En dashes in numeric ranges ("90-100") and the minus sign in report figures are
+# deliberate typography in rendered prose, not homoglyph accidents.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports, deliberately imported for the public surface.
+"src/mcp_xray/__init__.py" = ["F401"]
+"src/mcp_xray/probes/__init__.py" = ["F401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

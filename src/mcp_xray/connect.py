@@ -7,6 +7,7 @@ declared here; they need the optional ``mcp`` extra.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import shlex
 from pathlib import Path
@@ -131,9 +132,11 @@ def _stdio_factory(command: str):
 
     @asynccontextmanager
     async def make_session():
-        async with stdio_client(params) as (read, write):
-            async with ClientSession(read, write) as session:
-                yield session
+        async with (
+            stdio_client(params) as (read, write),
+            ClientSession(read, write) as session,
+        ):
+            yield session
 
     return make_session
 
@@ -154,15 +157,19 @@ def _http_factory(url: str, *, sse: bool = False, headers: dict | None = None):
         if sse:
             from mcp.client.sse import sse_client
 
-            async with sse_client(url, headers=req_headers) as (read, write):
-                async with ClientSession(read, write) as session:
-                    yield session
+            async with (
+                sse_client(url, headers=req_headers) as (read, write),
+                ClientSession(read, write) as session,
+            ):
+                yield session
         else:
             from mcp.client.streamable_http import streamablehttp_client
 
-            async with streamablehttp_client(url, headers=req_headers) as (read, write, _):
-                async with ClientSession(read, write) as session:
-                    yield session
+            async with (
+                streamablehttp_client(url, headers=req_headers) as (read, write, _),
+                ClientSession(read, write) as session,
+            ):
+                yield session
 
     return make_session
 
@@ -187,10 +194,8 @@ async def _gather_extras(session, init):
     both measure injectors identically (a phased server can still ship a costly
     instructions blob)."""
     instructions = None
-    try:
+    with contextlib.suppress(Exception):
         instructions = init.instructions  # type: ignore[attr-defined]
-    except Exception:
-        pass
     prompts: list[dict] = []
     try:
         pr = await session.list_prompts()

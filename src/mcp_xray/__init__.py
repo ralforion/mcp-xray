@@ -6,7 +6,7 @@ grading engine owns all interpretation. See design/MCP_XRAY_PLAN.md.
 
 __version__ = "1.4.0"
 
-from .finding import Finding  # noqa: E402,F401
-from .inventory import Inventory, Tool  # noqa: E402,F401
+from .finding import Finding
+from .inventory import Inventory, Tool
 
 __all__ = ["Finding", "Inventory", "Tool", "__version__"]

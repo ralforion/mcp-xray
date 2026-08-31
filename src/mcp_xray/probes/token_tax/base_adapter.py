@@ -46,6 +46,7 @@ class SubprocessAdapter(Probe):
                 capture_output=True,
                 text=True,
                 timeout=ctx.config.get("adapter_timeout", 120),
+                check=False,  # a non-zero exit is handled below, not raised
             )
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return []

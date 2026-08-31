@@ -64,15 +64,21 @@ def _lerp_score(value: float, good: float, bad: float) -> float:
 
 # Plain-English grade explainer, surfaced in the report (single source of truth).
 GRADE_SCALE_HELP = [
-    "The **overall score** (0–100) is the weighted average of the five scorecard "
-    "dimensions, over only the ones actually measured - a skipped probe drops its "
-    "weight and is reported \"not measured,\" never counted as zero. So a grade with "
-    "selection robustness unmeasured reflects ~75% of the rubric.",
-    "**Letter bands:** A = 90–100 (A+ ≥97, A- 90–92), B = 80–89, C = 70–79, "
-    "D = 60–69, F = below 60.",
-    "A grade is a *relative* read on surface quality, not a pass/fail - the "
-    "actionable detail is in the findings below (per-tool cost, consolidation, "
-    "behavioral), and every recommendation traces back to one.",
+    (
+        "The **overall score** (0–100) is the weighted average of the five scorecard "
+        "dimensions, over only the ones actually measured - a skipped probe drops its "
+        "weight and is reported \"not measured,\" never counted as zero. So a grade with "
+        "selection robustness unmeasured reflects ~75% of the rubric."
+    ),
+    (
+        "**Letter bands:** A = 90–100 (A+ ≥97, A- 90–92), B = 80–89, C = 70–79, "
+        "D = 60–69, F = below 60."
+    ),
+    (
+        "A grade is a *relative* read on surface quality, not a pass/fail - the "
+        "actionable detail is in the findings below (per-tool cost, consolidation, "
+        "behavioral), and every recommendation traces back to one."
+    ),
 ]
 
 

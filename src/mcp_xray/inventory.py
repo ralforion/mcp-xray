@@ -8,8 +8,9 @@ re-parse raw schemas.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any
 
 # Verbs that denote a pure read -- candidates for MCP resources rather than
 # tools (PLAN S10.3). Order-insensitive set; matched against the leading
@@ -263,7 +264,7 @@ class Inventory:
         resources: list[dict] | None = None,
         transport: str | None = None,
         source: str | None = None,
-    ) -> "Inventory":
+    ) -> Inventory:
         tools: list[Tool] = []
         for rt in raw_tools:
             name = rt.get("name")

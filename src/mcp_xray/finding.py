@@ -7,7 +7,7 @@ later, not by the probe (see PLAN S6 / S11).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 # Canonical kinds. Probes should use one of these so grading can route them.
@@ -47,7 +47,7 @@ class Finding:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Finding":
+    def from_dict(cls, d: dict[str, Any]) -> Finding:
         return cls(
             probe=d["probe"],
             kind=d["kind"],
