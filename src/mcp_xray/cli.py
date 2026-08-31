@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from . import __version__, connect
+from .chat import make_chat_client
 from .finding import Finding
 from .grade import Grader
 from .inventory import Inventory
@@ -21,11 +22,10 @@ from .orchestrator import (
     run_phased,
 )
 from .phases import build_phased, load_phases_manifest
-from .chat import make_chat_client
 from .pricing import load_prices
 from .report import build_report, render_markdown, standard_run_name, write_run
-from .vendors import ANTHROPIC, OPENAI, vendor_for
 from .validate import validate
+from .vendors import ANTHROPIC, OPENAI, vendor_for
 
 
 # --- shared loaders ------------------------------------------------------
@@ -351,7 +351,7 @@ def cmd_capture_phases(args) -> int:
             phase_invs = connect.capture_phases_http(args.http, spec, headers=_parse_headers(args))
         else:
             phase_invs = connect.capture_phases_http(args.sse, spec, sse=True, headers=_parse_headers(args))
-    except BaseException as e:  # noqa: BLE001 - anyio wraps errors in ExceptionGroup
+    except BaseException as e:  # anyio wraps errors in an ExceptionGroup
         # Surface the root cause cleanly instead of a task-group traceback. The
         # common case: an advance tool (e.g. load_model) isn't exposed because
         # the target isn't in multi-model mode.
@@ -367,7 +367,7 @@ def cmd_capture_phases(args) -> int:
 
         _collect(e)
         detail = "; ".join(m for m in msgs if m) or str(e)
-        raise SystemExit(f"capture-phases failed: {detail}")
+        raise SystemExit(f"capture-phases failed: {detail}") from e
 
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)

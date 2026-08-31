@@ -143,11 +143,12 @@ def test_resume_cache_reuses_completed_samples(crud_inventory, tmp_path):
     c1 = FailAfter(ok=3)
     NoiseProbe().run(ctx(c1))
     assert c1.calls == total                       # attempted everything
-    assert sum(1 for _ in open(cache)) == 3        # 3 successful samples persisted
+    with open(cache) as fh:
+        assert sum(1 for _ in fh) == 3             # 3 successful samples persisted
 
     # Round 2: a working client; cached samples reused, only remainder called.
     c2 = FailAfter(ok=10**9)
     findings = NoiseProbe().run(ctx(c2))
     assert c2.calls == total - 3                   # did NOT re-pay for the 3 cached
-    lab = [f for f in findings if f.measurement.get("mode") == "labeled"][0]
+    lab = next(f for f in findings if f.measurement.get("mode") == "labeled")
     assert lab.measurement["errors"] == 0          # fully resolved on resume

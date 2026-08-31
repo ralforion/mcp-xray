@@ -109,4 +109,4 @@ def test_flat_run_persists_tools_json(tmp_path):
     tj = out / "dumps" / "tools.json"
     assert tj.exists()
     data = json.loads(tj.read_text())
-    assert "tools" in data and data["tools"]  # a real, loadable surface
+    assert data.get("tools")  # a real, loadable surface

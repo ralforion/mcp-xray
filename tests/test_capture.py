@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
+from typing import ClassVar
 
 from mcp_xray import connect
 
@@ -15,8 +16,8 @@ class FakeSession:
     """Simulates a phase-swapped server: design phase until load_model is
     called, then the run phase exposes a different tool set."""
 
-    DESIGN = ["open_session", "get_reference"]
-    RUN = ["open_session", "get_item", "run_query"]
+    DESIGN: ClassVar[list[str]] = ["open_session", "get_reference"]
+    RUN: ClassVar[list[str]] = ["open_session", "get_item", "run_query"]
 
     def __init__(self):
         self.loaded = False
@@ -66,6 +67,6 @@ def test_capture_phase_error_raises():
     spec = [{"name": "run", "advance": [{"tool": "open_session", "args": {}}]}]
     try:
         connect.capture_phases(_factory(ErrSession()), spec, transport="stdio", source="fake")
-        assert False, "expected RuntimeError"
+        raise AssertionError("expected RuntimeError")
     except RuntimeError as e:
         assert "returned an error" in str(e)

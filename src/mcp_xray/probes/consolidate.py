@@ -25,7 +25,7 @@ from .base import Probe, RunContext
 # *dynamic keyspace* (ids/sessions discovered at runtime) and must stay a
 # tool -- a static ``resource://{id}`` template can't enumerate those keys.
 # Such reads are excluded from the resource-candidate list entirely.
-_KEY_PARAM = re.compile(r"(^|_)(id|ids|uuid|guid|key|slug|ref|name|model|session|dataset)($|_)", re.I)
+_KEY_PARAM = re.compile(r"(^|_)(id|ids|uuid|guid|key|slug|ref|name|model|session|dataset)($|_)", re.IGNORECASE)
 
 MERGE_THRESHOLD = 0.45  # below this a pair isn't worth proposing
 WIDE_UNION = 4  # a merged action-enum this wide raises call-difficulty (complexity flag)

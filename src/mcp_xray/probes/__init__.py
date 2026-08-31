@@ -2,6 +2,6 @@
 emits normalized Findings. Wrapped probes contribute measurements only; owned
 probes are the report."""
 
-from .base import Probe, RunContext  # noqa: F401
+from .base import Probe, RunContext
 
 __all__ = ["Probe", "RunContext"]

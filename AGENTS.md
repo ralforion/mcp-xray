@@ -117,6 +117,11 @@ Auth headers for live http/sse: repeatable `--header "Name: value"`, or the
   `tests/fixtures/` and are committed; real engagement data goes in git-ignored
   `profiles/`.
 - License headers / commercial framing: this is BSL-1.1, not open-source-default.
+- Lint rules are selected explicitly in `[tool.ruff.lint]`; ruff's defaults are
+  not a stable contract. `BLE`/`S110`/`S112` are deliberately unselected because
+  probes and transports catch `Exception` on purpose so a sensor degrades to
+  "not measured" instead of crashing the audit. The ruff version is pinned once,
+  in the `lint` extra.
 - Never use em-dashes in prose, docs, comments, or generated reports.
 
 ## Reference
