@@ -116,7 +116,10 @@ Auth headers for live http/sse: repeatable `--header "Name: value"`, or the
 - Generic, server-neutral fixtures (e.g. the synthetic "Acme Catalog") live in
   `tests/fixtures/` and are committed; real engagement data goes in git-ignored
   `profiles/`.
-- License headers / commercial framing: this is BSL-1.1, not open-source-default.
+- License headers / commercial framing: this is BUSL-1.1, not open-source-default.
+  BUSL-1.1 is the SPDX identifier for the Business Source License. Never write
+  BSL: BSL-1.0 is the Boost Software License, a permissive licence and close to
+  the opposite of this one, and BSL-1.1 is not an SPDX identifier at all.
 - Lint rules are selected explicitly in `[tool.ruff.lint]`; ruff's defaults are
   not a stable contract. `BLE`/`S110`/`S112` are deliberately unselected because
   probes and transports catch `Exception` on purpose so a sensor degrades to
