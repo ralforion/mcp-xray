@@ -42,7 +42,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      # Pinned: an unpinned `pip install ruff` floats to whatever is current, so
+      # a ruff release that widens the default rule set turns CI red on code
+      # nobody touched. Bumping this is a deliberate act, like the Action pins.
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.15.22
       - name: Ruff check
         run: ruff check src tests
