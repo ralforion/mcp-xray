@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://github.com/ralforion/mcp-xray/actions/workflows/ci.yml"><img src="https://github.com/ralforion/mcp-xray/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/ralforion/mcp-xray/releases/tag/v1.4.0"><img src="https://img.shields.io/badge/version-1.4.0-blue" alt="version"></a>
-  <a href="https://github.com/ralforion/mcp-xray/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-BSL_1.1-orange.svg" alt="License: BSL 1.1"></a>
+  <a href="https://github.com/ralforion/mcp-xray/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-BUSL--1.1-orange.svg" alt="License: BUSL-1.1"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
 </p>
 
@@ -268,7 +268,7 @@ living.
 - **MCP surface review** - we run the full audit against your live servers and
   hand back a prioritised remediation plan (not just a score). Good first step
   if your tool surface is large, phase-swapped, or quietly burning context.
-- **Commercial / embedded use** - the [BSL 1.1 license](LICENSE) lets you use
+- **Commercial / embedded use** - the [BUSL-1.1 license](LICENSE) lets you use
   mcp-xray for any internal purpose, including production. **Embedding it in a
   commercial product, or offering it as part of a paid service, needs a
   commercial license** - reach us via [ralforion.com](https://ralforion.com).
