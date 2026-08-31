@@ -214,6 +214,28 @@ pytest        # static + consolidation paths are fully testable offline
 `tests/contracts/` pins one frozen-fixture test per wrapped adapter so a silent
 upstream format change fails in CI, not in front of a client.
 
+Every GitHub Action in `.github/workflows` is pinned to a 40-character commit
+SHA rather than a tag, because a tag such as `v7` is a movable label whose owner
+can repoint it at any time. That is why the workflows are full of hex. Each pin
+carries a `# vX.Y.Z` comment naming the exact patch release the SHA was cut
+from, and `scripts/check-action-pins.sh` (run by the `pins` job in CI) resolves
+that tag upstream and fails if the commit it names is not the one pinned. Patch
+tags never move, so the check stays quiet until something is actually wrong.
+Without it a pull request could swap in a hash from a fork, leave the comment
+saying `# v7.0.1`, and the diff would look like a routine Dependabot bump.
+
+```bash
+./scripts/check-action-pins.sh            # full check, resolves tags upstream
+./scripts/check-action-pins.sh --offline  # SHA and comment format only, no network
+```
+
+The script also holds an `ALLOWED_OWNERS` allowlist (currently just `actions`),
+since a SHA matching its own tag says nothing about whether the action belongs
+here at all. Adding an owner is a deliberate decision. Note what the check does
+not do: it does not judge whether an action is safe, does not stop a downgrade
+to a real but ancient release, and `actions/checkout` necessarily runs before it
+(nothing can be verified before the tree exists).
+
 ## Status
 
 **v1.4.0 - production instrument.** Everything through the behavioral harness is
