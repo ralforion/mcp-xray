@@ -20,7 +20,7 @@ pip install -e ".[dev]"      # everything + pytest (api, openai, live extras)
 pytest                       # full suite; static + consolidation paths run offline/keyless
 pytest tests/test_noise.py   # single file
 pytest tests/test_noise.py::test_name -q   # single test
-ruff check src tests         # lint (CI runs exactly this)
+ruff check src tests         # lint (CI runs exactly this, on pinned ruff)
 ```
 
 CI (`.github/workflows/ci.yml`) runs `pytest -q` and `ruff check src tests`.
