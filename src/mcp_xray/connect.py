@@ -14,6 +14,25 @@ from pathlib import Path
 
 from .inventory import Inventory
 
+# The MCP SDK renamed its wire fields from camelCase to snake_case at 2.0
+# (``Tool.inputSchema`` -> ``input_schema``, ``InitializeResult.serverInfo`` ->
+# ``server_info``, ``CallToolResult.isError`` -> ``is_error``), and the old
+# names are not readable as attributes on the new models. pyproject asks for
+# ``mcp>=1.0``, so both shapes reach this module: read whichever the installed
+# SDK exposes rather than pinning it back. Under 2.x the camelCase reads were
+# not merely wrong, they were silent -- ``getattr(res, "isError", False)``
+# turned every failed advance call into a success.
+_MISSING = object()
+
+
+def _field(obj, *names, default=None):
+    """First attribute of ``names`` that the object actually has."""
+    for name in names:
+        value = getattr(obj, name, _MISSING)
+        if value is not _MISSING:
+            return value
+    return default
+
 
 def from_tools_json(path: str | Path) -> Inventory:
     """Load an offline ``tools/list`` dump.
@@ -70,8 +89,9 @@ def _from_mcp_session(make_session, *, transport: str, source: str) -> Inventory
             server_name = None
             server_version = None
             try:
-                server_name = init.serverInfo.name  # type: ignore[attr-defined]
-                server_version = init.serverInfo.version  # type: ignore[attr-defined]
+                info = _field(init, "server_info", "serverInfo")
+                server_name = info.name
+                server_version = info.version
             except Exception:
                 pass
 
@@ -82,7 +102,7 @@ def _from_mcp_session(make_session, *, transport: str, source: str) -> Inventory
                 {
                     "name": t.name,
                     "description": t.description or "",
-                    "inputSchema": t.inputSchema or {},
+                    "inputSchema": _field(t, "input_schema", "inputSchema") or {},
                 }
                 for t in tools_resp.tools
             ]
@@ -163,13 +183,31 @@ def _http_factory(url: str, *, sse: bool = False, headers: dict | None = None):
             ):
                 yield session
         else:
-            from mcp.client.streamable_http import streamablehttp_client
+            from mcp.client import streamable_http as sh
 
-            async with (
-                streamablehttp_client(url, headers=req_headers) as (read, write, _),
-                ClientSession(read, write) as session,
-            ):
-                yield session
+            # Three shapes of this transport are in the wild and pyproject asks
+            # for mcp>=1.0, so handle all of them. Late 1.x moved headers off
+            # the call and onto a caller-owned httpx client under the new name
+            # ``streamable_http_client``; 2.0 then dropped the old
+            # ``streamablehttp_client`` entirely and stopped yielding the third,
+            # session-id element. Slicing the yielded streams keeps the arity
+            # difference from mattering; we never used the session-id callback.
+            connect_http = getattr(sh, "streamable_http_client", None)
+            if connect_http is None:  # mcp 1.x before the rename
+                async with (
+                    sh.streamablehttp_client(url, headers=req_headers) as streams,
+                    ClientSession(*streams[:2]) as session,
+                ):
+                    yield session
+            else:
+                # A client we build is a client we own: streamable_http_client
+                # only closes one it created itself.
+                async with (
+                    sh.create_mcp_http_client(headers=req_headers) as http_client,
+                    connect_http(url, http_client=http_client) as streams,
+                    ClientSession(*streams[:2]) as session,
+                ):
+                    yield session
 
     return make_session
 
@@ -216,7 +254,11 @@ def _inventory_from_list_tools(
     instructions=None, prompts=None, resources=None,
 ) -> Inventory:
     raw = [
-        {"name": t.name, "description": t.description or "", "inputSchema": t.inputSchema or {}}
+        {
+            "name": t.name,
+            "description": t.description or "",
+            "inputSchema": _field(t, "input_schema", "inputSchema") or {},
+        }
         for t in tools_resp.tools
     ]
     return Inventory.from_tool_dicts(
@@ -242,8 +284,9 @@ def capture_phases(make_session, spec: list[dict], *, transport: str, source: st
             init = await session.initialize()
             sname = sver = None
             try:
-                sname = init.serverInfo.name  # type: ignore[attr-defined]
-                sver = init.serverInfo.version  # type: ignore[attr-defined]
+                info = _field(init, "server_info", "serverInfo")
+                sname = info.name
+                sver = info.version
             except Exception:
                 pass
             # Injector channels are server-level (same across phases) - gather
@@ -253,7 +296,7 @@ def capture_phases(make_session, spec: list[dict], *, transport: str, source: st
                 name = phase["name"]
                 for call in phase.get("advance", []) or []:
                     res = await session.call_tool(call["tool"], call.get("args", {}) or {})
-                    if getattr(res, "isError", False):
+                    if _field(res, "is_error", "isError", default=False):
                         raise RuntimeError(
                             f"advance call {call['tool']}({call.get('args', {})}) for phase "
                             f"'{name}' returned an error: {getattr(res, 'content', '')}"
@@ -283,7 +326,7 @@ def _serialize_result(res) -> str:
             parts.append(json.dumps(block, default=str))
         except Exception:
             parts.append(str(block))
-    sc = getattr(res, "structuredContent", None)
+    sc = _field(res, "structured_content", "structuredContent")
     if sc is not None:
         try:
             parts.append(json.dumps(sc, default=str))
@@ -312,7 +355,7 @@ def measure_result_sizes(make_session, calls: list[dict], *, transport: str, sou
                 rec: dict = {"tool": tool, "args": args}
                 try:
                     res = await session.call_tool(tool, args)
-                    if getattr(res, "isError", False):
+                    if _field(res, "is_error", "isError", default=False):
                         rec["error"] = f"tool returned isError: {_serialize_result(res)[:200]}"
                     else:
                         text = _serialize_result(res)
