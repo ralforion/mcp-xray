@@ -41,9 +41,13 @@ Issues = "https://github.com/ralforion/mcp-xray/issues"
 api = ["anthropic>=0.40"]
 # OpenAI vendor: local tiktoken counting + chat.completions behavioral probe.
 openai = ["openai>=1.40", "tiktoken>=0.7"]
-# Live stdio/sse/http transports.
-live = ["mcp>=1.0"]
-all = ["anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0"]
+# Live stdio/sse/http transports. The floor is 2.0, not 1.0: the SDK renamed
+# its wire fields to snake_case there (inputSchema -> input_schema, and so on)
+# and dropped the old streamable-HTTP entry point, so 1.x cannot drive these
+# transports at all. connect._require_mcp says so out loud for environments
+# resolved before this floor.
+live = ["mcp>=2.0"]
+all = ["anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=2.0"]
 # The ruff pin lives here and nowhere else: CI installs this extra rather than
 # naming a version in a `run:` step, which Dependabot cannot see or update.
 lint = ["ruff==0.16.6"]
@@ -51,7 +55,7 @@ lint = ["ruff==0.16.6"]
 # dependency markers with it. Declared and locked rather than pip-installed in
 # a CI step: the venv uv builds has no pip, and an unpinned install in a `run:`
 # block is one Dependabot cannot see.
-dev = ["pytest>=8.0", "mcp-xray-audit[lint]", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=1.0", "packaging>=24.0"]
+dev = ["pytest>=8.0", "mcp-xray-audit[lint]", "anthropic>=0.40", "openai>=1.40", "tiktoken>=0.7", "mcp>=2.0", "packaging>=24.0"]
 
 [project.scripts]
 mcp-xray = "mcp_xray.cli:main"
