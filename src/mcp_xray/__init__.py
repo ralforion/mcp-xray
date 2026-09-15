@@ -4,7 +4,7 @@ Many sensors, one voice. Wrapped tools contribute measurements only; the
 grading engine owns all interpretation. See design/MCP_XRAY_PLAN.md.
 """
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 from .finding import Finding
 from .inventory import Inventory, Tool
