@@ -1,0 +1,86 @@
+name: Release
+
+# Publishes to PyPI when a version tag is pushed. The tag is the release: the
+# wheel is built from the tagged commit, so what PyPI serves and what the tag
+# names are the same tree. 1.4.0 was uploaded by hand from a later commit
+# than its tag, which is the drift this workflow exists to prevent.
+#
+# Authentication is PyPI trusted publishing: the job presents a short-lived
+# OIDC token that PyPI checks against this repository, this workflow file and
+# the `pypi` environment. No API token is stored anywhere. The one-time setup
+# is under "Releasing" in the README.
+
+on:
+  push:
+    tags: ["v*"]
+
+# Read-only by default, as in ci.yml. Only the publish job asks for the OIDC
+# token, and it asks for nothing else.
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish (pypi)
+    runs-on: ubuntu-latest
+    # Naming an environment lets branch-style protection apply to releases:
+    # required reviewers on `pypi` turn a pushed tag into a pending approval
+    # rather than an upload. GitHub creates the environment on first use.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/mcp-xray-audit/${{ github.ref_name }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install -q uv
+
+      # A tag that does not name the version in pyproject.toml is a mistake
+      # somewhere, and the cheapest place to catch it is before anything is
+      # built. Strip the leading v; the tag is v1.5.0, the version is 1.5.0.
+      - name: Tag names the project version
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          project_version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ "$tag_version" != "$project_version" ]; then
+            echo "tag $GITHUB_REF_NAME names $tag_version but pyproject.toml says $project_version" >&2
+            exit 1
+          fi
+
+      # The tag normally sits on main, which CI already gated, but a tag can be
+      # pushed on any commit. Running the suite here costs a second and means
+      # nothing reaches PyPI that CI would have turned red.
+      - name: Resolve the locked closure
+        run: uv sync --locked --all-extras
+      - name: Run tests
+        run: uv run --no-sync python -m pytest -q
+      - name: Ruff check
+        run: uv run --no-sync ruff check src tests
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      # Install the wheel that is about to ship into an empty venv, not the
+      # project checkout, and check that the package imports and reports the
+      # tagged version. This catches a wheel that builds but is missing a
+      # module, or one built from a stale version string.
+      - name: Smoke-test the built wheel
+        run: |
+          uv venv --quiet "$RUNNER_TEMP/smoke"
+          uv pip install --quiet --python "$RUNNER_TEMP/smoke/bin/python" dist/*.whl
+          installed=$("$RUNNER_TEMP/smoke/bin/python" -c 'import mcp_xray; print(mcp_xray.__version__)')
+          if [ "$installed" != "${GITHUB_REF_NAME#v}" ]; then
+            echo "built wheel reports $installed, tag is $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          "$RUNNER_TEMP/smoke/bin/mcp-xray" --help > /dev/null
+
+      # `always` refuses to fall back to a token, so a misconfigured trusted
+      # publisher fails loudly here instead of prompting for credentials.
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
