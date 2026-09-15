@@ -236,6 +236,29 @@ not do: it does not judge whether an action is safe, does not stop a downgrade
 to a real but ancient release, and `actions/checkout` necessarily runs before it
 (nothing can be verified before the tree exists).
 
+## Releasing
+
+A release is a pushed tag. `.github/workflows/release.yml` builds the sdist and
+wheel from the tagged commit, checks that the tag names the version in
+`pyproject.toml`, runs the suite, smoke-installs the wheel into an empty venv,
+and uploads to PyPI with trusted publishing. No PyPI token is stored anywhere.
+
+```bash
+# bump `version` in pyproject.toml and `__version__` in src/mcp_xray/__init__.py,
+# refresh uv.lock, merge, then:
+git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z
+gh release create vX.Y.Z --title "vX.Y.Z" --verify-tag --notes "..."
+```
+
+The GitHub release is written by hand because its notes are. The `pypi`
+environment the job runs in can carry required reviewers, which turns a pushed
+tag into a pending approval rather than an immediate upload.
+
+One-time setup, in the PyPI project's publishing settings: add a trusted
+publisher for owner `ralforion`, repository `mcp-xray`, workflow
+`release.yml`, environment `pypi`. Until that exists the publish step fails
+with an OIDC error and nothing is uploaded.
+
 ## Status
 
 **v1.5.0 - production instrument.** Everything through the behavioral harness is
