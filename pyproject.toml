@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-xray-audit"
-version = "1.4.0"
+version = "1.5.0"
 description = "One field instrument for MCP server reviews: token tax, behavioral noise, capability reduction -> one graded report."
 readme = "README.md"
 requires-python = ">=3.11"

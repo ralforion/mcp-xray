@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/ralforion/mcp-xray/actions/workflows/ci.yml"><img src="https://github.com/ralforion/mcp-xray/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/ralforion/mcp-xray/releases/tag/v1.4.0"><img src="https://img.shields.io/badge/version-1.4.0-blue" alt="version"></a>
+  <a href="https://github.com/ralforion/mcp-xray/releases/tag/v1.5.0"><img src="https://img.shields.io/badge/version-1.5.0-blue" alt="version"></a>
   <a href="https://github.com/ralforion/mcp-xray/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-BUSL--1.1-orange.svg" alt="License: BUSL-1.1"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
 </p>
@@ -238,8 +238,10 @@ to a real but ancient release, and `actions/checkout` necessarily runs before it
 
 ## Status
 
-**v1.4.0 - production instrument.** Everything through the behavioral harness is
-shipped:
+**v1.5.0 - production instrument.** Everything through the behavioral harness is
+shipped. 1.5.0 moves the live transports to the `mcp` 2.x SDK (the `live` extra
+now requires `mcp>=2`; 1.4.0 fails against a fresh install because the SDK
+renamed its wire fields):
 
 - **Offline core** - static hygiene (authoritative tokens + smells), consolidation
   (merge/resource candidates, JIT framing), grading, and rendered report. Keyless,
