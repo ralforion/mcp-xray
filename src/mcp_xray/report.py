@@ -56,7 +56,7 @@ GLOSSARY = [
     ("Resource candidate", "A pure-read tool (get_/list_) that could be exposed as an MCP resource instead, removing it from the tool-selection space. Advisory - depends on access pattern and a dynamic keyspace may have to stay a tool."),
     ("Confusability (proxy)", "When the model picks the wrong tool given a tool's own description as the prompt - a no-LLM-ground-truth signal that two tools overlap."),
     ("Distraction", "A tool firing on an off-domain prompt it has no business handling - a sign of over-broad descriptions."),
-    ("Selection robustness", "Whether the model picks the right tool and stays quiet on off-domain prompts. Requires the LLM probe; otherwise 'not measured'."),
+    ("Selection robustness", "Whether the model picks the right tool and stays quiet on off-domain prompts. Requires the LLM probe; otherwise, or when every selection sample failed, 'not measured'."),
     ("Phase / carried tools", "A phase-swapped server exposes different tools by journey phase (e.g. setup vs. run). 'Carried' tools are visible in more than one phase - the cross-phase cost."),
     ("Progressive / JIT loading", "Exposing tools on demand per phase instead of all at once, so the model never carries the full union - the per-turn tax is the worst single phase."),
     ("Fingerprint", "A hash of the tool inventory; keys a run so re-audits of the same server reveal drift."),
@@ -178,6 +178,29 @@ def write_run(out_dir: str | Path, result: RunResult, grade: Grade) -> dict[str,
 def _esc(value) -> str:
     """Escape a value for a Markdown table cell - a bare '|' splits cells."""
     return str(value).replace("|", "\\|")
+
+
+_COVERAGE_UNITS = {"labeled": "queries", "confusability_proxy": "tools", "distraction": "tasks"}
+
+
+def _behavioral_coverage(findings: list[Finding]) -> str | None:
+    """One line on how much of the behavioral probe was measured, e.g.
+    "confusability_proxy 9 of 10 tools, distraction 4 of 4 tasks; 3 of 39
+    samples failed (API error or cut off) and were not scored"."""
+    cov = [f.measurement for f in findings if f.kind == "probe_coverage" and f.probe == "noise"]
+    if not cov:
+        return None
+    parts = [
+        f"{m.get('mode')} {m.get('units_measured', 0)} of {m.get('units', 0)} "
+        f"{_COVERAGE_UNITS.get(m.get('mode'), 'units')}"
+        for m in cov
+    ]
+    failed = sum(m.get("errors", 0) for m in cov)
+    total = failed + sum(m.get("samples", 0) for m in cov)
+    line = ", ".join(parts) + " measured"
+    if failed:
+        line += f"; {failed} of {total} samples failed (API error or cut off) and were not scored"
+    return line
 
 
 def render_markdown(report: dict) -> str:
@@ -483,6 +506,9 @@ def render_markdown(report: dict) -> str:
     if cov["skipped"]:
         sk = "; ".join(f"{s['probe']} (missing: {', '.join(s['missing'])})" for s in cov["skipped"])
         L.append(f"- **Skipped (not measured):** {sk}")
+    behavioral = _behavioral_coverage(findings)
+    if behavioral:
+        L.append(f"- **Behavioral samples:** {behavioral}")
     _backend_desc = {
         "api": "authoritative (Anthropic count_tokens)",
         "tiktoken": "authoritative (OpenAI tiktoken, local)",

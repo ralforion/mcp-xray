@@ -30,6 +30,12 @@ _PROBE_ERROR = object()
 # model legitimately declined and we want to reuse that decline).
 _MISS = object()
 
+# Resume-cache version, the first element of every cache key. A cached sample is
+# reused only if it was taken the way the current code takes one, so bump this
+# whenever that changes (prompt, tool_choice, max_tokens, or what counts as a
+# decline). 2: a reply cut off at max_tokens became an error, not a cached None.
+_CACHE_VERSION = 2
+
 # Off-domain tasks a focused server should ignore entirely (PLAN S9).
 DISTRACTION_TASKS = [
     "What's 17 times 23?",
@@ -49,7 +55,7 @@ class NoiseProbe(Probe):
         inv = ctx.inventory
         samples = int(ctx.config.get("noise_samples", DEFAULT_SAMPLES))
         # Resume cache (optional): completed samples persist to a JSONL keyed by
-        # (fingerprint, model, query, idx) so an interrupted/failed run resumes
+        # (version, fingerprint, model, query, idx) so an interrupted/failed run resumes
         # without re-paying for samples already gathered. Off unless a path is
         # set (--resume). Errored samples are never cached, so they retry.
         self._cache_path = ctx.config.get("probe_cache")
@@ -59,6 +65,13 @@ class NoiseProbe(Probe):
         if self._cache_path and self._cache:
             from sys import stderr
             print(f"[resume] loaded {len(self._cache)} cached probe sample(s)", file=stderr)
+        # Per-mode coverage, so the grader can tell "nothing failed" from
+        # "nothing was measured" (mode findings exist only for measured units).
+        sel_mode = "labeled" if ctx.queries else "confusability_proxy"
+        self._tally = {
+            mode: {"units": 0, "units_measured": 0, "samples": 0, "errors": 0}
+            for mode in (sel_mode, "distraction")
+        }
         findings: list[Finding] = []
 
         if ctx.queries:
@@ -67,6 +80,15 @@ class NoiseProbe(Probe):
             findings.extend(self._confusability_proxy(ctx, inv, samples))
 
         findings.extend(self._distraction(ctx, inv, samples))
+        findings.extend(
+            Finding(
+                probe=self.name,
+                kind="probe_coverage",
+                target=[],
+                measurement={"mode": mode, **counts},
+            )
+            for mode, counts in self._tally.items()
+        )
         return findings
 
     # --- mode 1: labeled selection --------------------------------------
@@ -75,7 +97,7 @@ class NoiseProbe(Probe):
         for q in ctx.queries or []:
             query = q.get("query") or q.get("prompt", "")
             expected = set(q.get("expected_tools") or ([q["expected_tool"]] if q.get("expected_tool") else []))
-            picks, errors = self._sample(ctx, inv, query, samples)
+            picks, errors = self._sample(ctx, inv, query, samples, mode="labeled")
             if not picks:
                 # every sample errored - not measured; don't fabricate a 0% pass.
                 continue
@@ -104,7 +126,7 @@ class NoiseProbe(Probe):
         out: list[Finding] = []
         for tool in inv.tools:
             probe_q = self._synthesize_query(tool)
-            picks, errors = self._sample(ctx, inv, probe_q, samples)
+            picks, errors = self._sample(ctx, inv, probe_q, samples, mode="confusability_proxy")
             if not picks:
                 continue  # all samples errored - not measured
             hits = [p for p in picks if p == tool.name]
@@ -135,7 +157,7 @@ class NoiseProbe(Probe):
     def _distraction(self, ctx: RunContext, inv: Inventory, samples: int) -> list[Finding]:
         out: list[Finding] = []
         for task in DISTRACTION_TASKS:
-            picks, errors = self._sample(ctx, inv, task, samples, allow_none=True)
+            picks, errors = self._sample(ctx, inv, task, samples, mode="distraction", allow_none=True)
             if not picks:
                 continue  # all samples errored - not measured
             fired = [p for p in picks if p]
@@ -186,11 +208,13 @@ class NoiseProbe(Probe):
             # so the caller can exclude it rather than count it as a miss.
             return _PROBE_ERROR
 
-    def _sample(self, ctx: RunContext, inv: Inventory, query: str, n: int, *, allow_none: bool = False):
+    def _sample(
+        self, ctx: RunContext, inv: Inventory, query: str, n: int, *, mode: str, allow_none: bool = False
+    ):
         """Run n samples; return (successful_picks, n_errors). Errored samples
         are dropped from the picks so they can't corrupt a pass/fire rate, and
         are never cached (so a resume retries them). Cached samples are reused
-        without an API call."""
+        without an API call. Counts go to ``mode``'s coverage tally."""
         picks: list = []
         errors = 0
         for i in range(n):
@@ -205,16 +229,24 @@ class NoiseProbe(Probe):
                 continue
             picks.append(r)
             self._cache_put(key, r)
+        t = self._tally[mode]
+        t["units"] += 1
+        t["units_measured"] += 1 if picks else 0
+        t["samples"] += len(picks)
+        t["errors"] += errors
         return picks, errors
 
     # --- resume cache ----------------------------------------------------
     def _cache_key(self, query: str, idx: int, allow_none: bool) -> str | None:
-        """Stable per-sample key. Includes the surface fingerprint + model so a
-        changed surface or model misses (and re-probes); returns None when
-        caching is off."""
+        """Stable per-sample key. Includes the cache version, surface
+        fingerprint and model, so a sample taken by older sampling code, on a
+        changed surface or with another model misses (and re-probes); returns
+        None when caching is off."""
         if not getattr(self, "_cache_path", None):
             return None
-        return json.dumps([self._fp, self._model, query, idx, allow_none], sort_keys=True)
+        return json.dumps(
+            [_CACHE_VERSION, self._fp, self._model, query, idx, allow_none], sort_keys=True
+        )
 
     def _cache_load(self, path) -> dict:
         if not path:
@@ -228,6 +260,8 @@ class NoiseProbe(Probe):
                         continue
                     try:
                         rec = json.loads(line)
+                        if json.loads(rec["k"])[0] != _CACHE_VERSION:
+                            continue  # taken by older sampling code: re-probe
                         out[rec["k"]] = rec["v"]  # v is a tool name or null
                     except Exception:
                         continue  # skip a corrupt line, keep the rest

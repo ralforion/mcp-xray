@@ -35,6 +35,16 @@ weight** and is reported **"not measured"** - never scored zero. So a keyless
 offline run is graded on ~75% of the rubric (the 25% selection weight is
 removed), not penalized for the missing probe.
 
+The same holds when the behavioral probe runs but measures nothing. Its
+selection and distraction findings exist only for queries, tools and tasks with
+at least one successful sample, so it also emits one `probe_coverage` finding
+per mode (units attempted and measured, samples, failed samples). If no
+selection sample succeeded, for example because every call errored or every
+reply was cut off at `max_tokens`, Selection Robustness is "not measured", not a
+clean 100. With partial coverage, the confusability score is taken over the tools
+actually measured, and the rationale says how many were measured and how many
+samples failed. Runs stored before coverage was recorded grade as they did then.
+
 ### Letter bands
 
 ```
@@ -66,6 +76,7 @@ The grader maps each finding to a 0–1 severity (`Grader._severity`):
 | `hidden_injector` | `clamp(tokens_est / 1000)` |
 | `resource_candidate` | `0.3` (advisory) |
 | `jit_candidate` | `0.5` if recommended, else `0.1` |
+| `probe_coverage` | `0` (bookkeeping: tells measured from failed, never a defect) |
 
 `lerp(value, good, bad)` maps `≤good → 100`, `≥bad → 0`, linear between.
 
@@ -88,8 +99,9 @@ the union - and the row names that phase.
 # with labeled queries:
 base = avg(pass_rate) · 100
 # proxy-only (no labels):
-base = 100 − clamp(#confusable_tools / #tools) · 60
+base = 100 − clamp(#confusable_tools / #tools_measured) · 60
 score = base − clamp(Σ fire_rate / 2) · 40          # distraction penalty
+# no selection sample measured (all errored / cut off) → "not measured"
 ```
 Detail: [`behavioral-probe.md`](behavioral-probe.md).
 

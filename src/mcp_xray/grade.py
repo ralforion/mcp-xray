@@ -45,8 +45,18 @@ DIMENSION_HELP = {
     "surface_redundancy": "Overlapping or duplicate tools the model must disambiguate. Merge candidates and duplicate detections lower it.",
     "schema_hygiene": "Structural quality of input schemas - deep nesting, oversized enums, or too many parameters drag it down.",
     "description_quality": "Whether tool descriptions are present, specific, and distinct. Missing/vague descriptions and model confusability lower it.",
-    "selection_robustness": "Whether the model picks the right tool and stays quiet on off-domain prompts. Needs the LLM probe; 'not measured' without one.",
+    "selection_robustness": "Whether the model picks the right tool and stays quiet on off-domain prompts. Needs the LLM probe; 'not measured' without one, or when every selection sample failed.",
 }
+
+
+def _noise_coverage(findings: list[Finding]) -> dict[str, dict]:
+    """The noise probe's per-mode coverage counts, keyed by mode. Empty for a
+    run stored before the probe recorded coverage, which grades as it did then."""
+    return {
+        f.measurement.get("mode"): f.measurement
+        for f in findings
+        if f.kind == "probe_coverage" and f.probe == "noise"
+    }
 
 
 def _clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -254,12 +264,27 @@ class Grader:
         score = round(max(0.0, 100 - penalty), 1)
         note = f"{len(desc)} description smell(s)"
         if "noise" in ran:
-            note += f", {len(proxy)} confusable"
+            proxy_cov = _noise_coverage(findings).get("confusability_proxy")
+            if proxy_cov is not None and not proxy_cov.get("units_measured"):
+                note += ", confusability not measured"
+            else:
+                note += f", {len(proxy)} confusable"
         return Subscore(score, True, DIMENSIONS["description_quality"], note, len(desc) + len(proxy))
 
     def _selection_robustness(self, findings: list[Finding], ran: list[str]) -> Subscore:
         if "noise" not in ran:
             return Subscore(None, False, DIMENSIONS["selection_robustness"], "behavioral probe not run (no LLM)")
+        # The probe writes selection/distraction findings only for measured
+        # units, so with no findings, coverage is what separates "clean" from
+        # "every sample failed" (an API error, or a reply cut off at max_tokens).
+        cov = _noise_coverage(findings)
+        sel_cov = cov.get("labeled") or cov.get("confusability_proxy")
+        failed = sum(c.get("errors", 0) for c in cov.values())
+        if cov and not (sel_cov and sel_cov.get("units_measured")):
+            why = "behavioral probe ran, but no selection sample was measured"
+            if failed:
+                why += f" ({failed} failed)"
+            return Subscore(None, False, DIMENSIONS["selection_robustness"], why)
         sel = [f for f in findings if f.kind == "selection_error" and f.measurement.get("mode") == "labeled"]
         distr = [f for f in findings if f.kind == "distraction"]
         # Labeled pass rates dominate; distraction failures are sharp penalties.
@@ -267,16 +292,24 @@ class Grader:
             avg_pass = sum(f.measurement.get("pass_rate", 1.0) for f in sel) / len(sel)
             base = avg_pass * 100
         else:
-            # proxy-only: derive from confusability rate
+            # proxy-only: derive from confusability rate, over the tools that
+            # were actually measured (an all-error tool is not a pass)
             proxy = [f for f in findings if f.kind == "selection_error" and f.measurement.get("mode") == "confusability_proxy"]
-            n_tools = self._tool_count(findings) or 1
+            n_tools = (sel_cov or {}).get("units_measured") or self._tool_count(findings) or 1
             base = max(0.0, 100 - _clamp(len(proxy) / n_tools) * 60)
         distr_penalty = _clamp(sum(f.measurement.get("fire_rate", 0) for f in distr) / 2) * 40
         score = round(max(0.0, base - distr_penalty), 1)
+        note = f"{len(sel)} labeled, {len(distr)} distraction failure(s)"
+        if sel_cov and sel_cov.get("units_measured", 0) < sel_cov.get("units", 0):
+            unit = "queries" if "labeled" in cov else "tools"
+            note += f"; {sel_cov['units_measured']} of {sel_cov['units']} {unit} measured"
+        distr_cov = cov.get("distraction")
+        if distr_cov is not None and not distr_cov.get("units_measured"):
+            note += "; distraction not measured"
+        if failed:
+            note += f"; {failed} sample(s) failed"
         return Subscore(
-            score, True, DIMENSIONS["selection_robustness"],
-            f"{len(sel)} labeled, {len(distr)} distraction failure(s)",
-            len(sel) + len(distr),
+            score, True, DIMENSIONS["selection_robustness"], note, len(sel) + len(distr),
         )
 
     def _tool_count(self, findings: list[Finding]) -> int:

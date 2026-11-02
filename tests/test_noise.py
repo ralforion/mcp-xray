@@ -152,3 +152,83 @@ def test_resume_cache_reuses_completed_samples(crud_inventory, tmp_path):
     assert c2.calls == total - 3                   # did NOT re-pay for the 3 cached
     lab = next(f for f in findings if f.measurement.get("mode") == "labeled")
     assert lab.measurement["errors"] == 0          # fully resolved on resume
+
+
+def test_resume_ignores_samples_cached_by_older_sampling_code(crud_inventory, tmp_path):
+    # A cache written before the sampling change holds a None for a reply that
+    # was really cut off at max_tokens. Resuming must re-probe it, not reuse it
+    # as a clean decline (which hid the distraction and inflated the grade).
+    import json
+
+    from mcp_xray.probes.noise import DISTRACTION_TASKS
+
+    cache = tmp_path / "probe-cache.jsonl"
+    with open(cache, "w") as fh:
+        for task in DISTRACTION_TASKS:
+            for idx in range(2):
+                old_key = json.dumps([crud_inventory.fingerprint(), "m", task, idx, True], sort_keys=True)
+                fh.write(json.dumps({"k": old_key, "v": None}) + "\n")
+
+    class Counting(FakeClient):
+        calls = 0
+
+        def pick_tool(self, tools, system, query, *, allow_none):
+            Counting.calls += 1
+            return self._pick
+
+    ctx = RunContext(
+        inventory=crud_inventory, counter=OfflineCounter(),
+        available={"inventory", "api_key", "llm"}, model="m", client=Counting("create_label"),
+        config={"noise_samples": 2, "probe_cache": str(cache)},
+    )
+    findings = NoiseProbe().run(ctx)
+    assert [f for f in findings if f.kind == "distraction"]  # re-probed, so it fires
+    assert Counting.calls == (len(crud_inventory.tools) + len(DISTRACTION_TASKS)) * 2
+
+
+def _coverage(findings):
+    return {f.measurement["mode"]: f.measurement for f in findings if f.kind == "probe_coverage"}
+
+
+def test_coverage_counts_measured_and_failed_samples(crud_inventory):
+    # Selection samples succeed, every distraction sample fails.
+    class FailsWhenDeclineAllowed(FakeClient):
+        def pick_tool(self, tools, system, query, *, allow_none):
+            if allow_none:
+                raise RuntimeError("hit max_tokens")
+            return self._pick
+
+    findings = NoiseProbe().run(_ctx(crud_inventory, FailsWhenDeclineAllowed("create_label")))
+    cov = _coverage(findings)
+    n_tools = len(crud_inventory.tools)
+    assert cov["confusability_proxy"] == {
+        "mode": "confusability_proxy", "units": n_tools, "units_measured": n_tools,
+        "samples": n_tools * 2, "errors": 0,
+    }
+    assert cov["distraction"]["units_measured"] == 0
+    assert cov["distraction"]["errors"] == 4 * 2
+
+
+def test_every_sample_cut_off_grades_selection_not_measured(crud_inventory):
+    # End to end: a model whose every reply hits max_tokens produces no
+    # selection or distraction findings. That must grade "not measured", not
+    # a clean 100.
+    from mcp_xray.chat import AnthropicChat
+    from mcp_xray.grade import Grader
+
+    class _CutOff:
+        def __init__(self):
+            self.content = []
+            self.stop_reason = "max_tokens"
+
+    class _Messages:
+        def create(self, **kwargs):
+            return _CutOff()
+
+    chat = AnthropicChat("claude-x", client=type("C", (), {"messages": _Messages()})())
+    findings = NoiseProbe().run(_ctx(crud_inventory, chat))
+    assert [f for f in findings if f.kind in ("selection_error", "distraction")] == []
+
+    sub = Grader().grade(findings, ran=["noise"]).subscores["selection_robustness"]
+    assert sub.measured is False and sub.score is None
+    assert "no selection sample was measured" in sub.rationale

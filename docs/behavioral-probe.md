@@ -256,6 +256,11 @@ mcp-xray analyze --stdio "my-server" --llm --model claude-opus-4-8 --samples 15 
 - **Natural invalidation:** the fingerprint keys the cache, so changing any tool
   description misses the cache and re-probes the changed surface; the model must
   match too (selection is model-specific).
+- **Versioned:** every key starts with a sampling version (`_CACHE_VERSION` in
+  `noise.py`), bumped whenever the way a sample is taken changes. Samples cached
+  by an older version are ignored and re-probed, so a stale result (such as a
+  reply cut off at the old `max_tokens` budget and stored as "no tool") is never
+  reused.
 - Samples are independent draws, so reusing ones gathered at different times is
   statistically sound. Delete the cache file to force a fully fresh run.
 
