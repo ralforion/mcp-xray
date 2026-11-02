@@ -64,3 +64,52 @@ def test_headline_cost_present(crud_inventory):
     report = build_report(result, grade)
     assert report["headline"]["surface_tokens_per_turn"] > 0
     assert report["headline"]["authoritative"] is False
+
+
+def _cov(mode, units, measured, samples, errors):
+    from mcp_xray.finding import Finding
+
+    return Finding(
+        probe="noise", kind="probe_coverage", target=[],
+        measurement={"mode": mode, "units": units, "units_measured": measured, "samples": samples, "errors": errors},
+    )
+
+
+def test_noise_run_stored_without_coverage_grades_as_before():
+    # Runs stored before the probe recorded coverage keep their grade.
+    sub = Grader().grade([], ran=["noise"]).subscores["selection_robustness"]
+    assert sub.measured is True and sub.score == 100.0
+
+
+def test_proxy_selection_scored_over_measured_tools_only():
+    from mcp_xray.finding import Finding
+
+    proxy_miss = Finding(
+        probe="noise", kind="selection_error", target="a",
+        measurement={"mode": "confusability_proxy", "pass_rate": 0.0, "samples": 2, "errors": 0},
+    )
+    findings = [
+        proxy_miss,
+        _cov("confusability_proxy", units=10, measured=5, samples=10, errors=10),
+        _cov("distraction", units=4, measured=0, samples=0, errors=8),
+    ]
+    sub = Grader().grade(findings, ran=["noise"]).subscores["selection_robustness"]
+    # 1 confusable of the 5 tools measured, not of all 10 (or of 1, the fallback)
+    assert sub.measured is True and sub.score == 88.0
+    assert "5 of 10 tools measured" in sub.rationale
+    assert "distraction not measured" in sub.rationale
+    assert "18 sample(s) failed" in sub.rationale
+
+
+def test_report_states_behavioral_coverage():
+    from mcp_xray.report import _behavioral_coverage
+
+    line = _behavioral_coverage([
+        _cov("confusability_proxy", units=10, measured=9, samples=27, errors=3),
+        _cov("distraction", units=4, measured=4, samples=12, errors=0),
+    ])
+    assert line == (
+        "confusability_proxy 9 of 10 tools, distraction 4 of 4 tasks measured; "
+        "3 of 42 samples failed (API error or cut off) and were not scored"
+    )
+    assert _behavioral_coverage([]) is None

@@ -22,7 +22,7 @@ with the **entire tool surface** attached and a forced choice:
 ```python
 resp = client.messages.create(
     model=...,
-    max_tokens=256,
+    max_tokens=4096,               # room for thinking before the call
     system=system,                 # see §3
     tools=tools,                   # all N tool definitions
     tool_choice={"type": "any"}    # MUST call exactly one tool
@@ -39,6 +39,19 @@ credentials, and no side effects. It measures *selection*, not *execution*.
 
 For OpenAI models the same contract is implemented with
 `tool_choice="required"` / `"auto"` (`chat.py → OpenAIChat`).
+
+**Models without forced tool use.** Claude Opus 5.5, Sonnet 5.5 and Fable 5.1
+reject `tool_choice: any` with a 400. The first rejected request switches that
+client to `auto` for every later must-pick sample, with one sentence appended to
+the system prompt saying a tool call is required (§3). Because `auto` does not
+guarantee a call, a sample that comes back with no call is asked once more; a
+second decline is recorded as `None`, which scores as a miss. Any other 400 is a
+real error and still fails the sample. Models that accept `any` keep using it.
+
+**Cut-off responses are errors, not decisions.** Thinking counts against
+`max_tokens`, and some models always think. A response that hits `max_tokens`
+before any `tool_use` block raises, so the sample is counted under `errors`
+instead of being scored as a decline or a wrong pick.
 
 ---
 
@@ -100,6 +113,14 @@ tool fits, call exactly one. If none fits, do not call any tool.
 That is the whole instruction. The tool definitions are not pasted into the
 prompt text - they ride in the API's `tools` field, and `tool_choice` enforces
 "exactly one" vs. "may decline."
+
+On a model that rejects forced tool use (§1), the must-pick modes append one
+sentence, because there `tool_choice` cannot enforce the call:
+
+```
+This request requires a tool call, even if no tool fits perfectly: call exactly
+one, the tool that fits best.
+```
 
 **Worked example** - the confusability query for a tool described as:
 
@@ -235,6 +256,11 @@ mcp-xray analyze --stdio "my-server" --llm --model claude-opus-4-8 --samples 15 
 - **Natural invalidation:** the fingerprint keys the cache, so changing any tool
   description misses the cache and re-probes the changed surface; the model must
   match too (selection is model-specific).
+- **Versioned:** every key starts with a sampling version (`_CACHE_VERSION` in
+  `noise.py`), bumped whenever the way a sample is taken changes. Samples cached
+  by an older version are ignored and re-probed, so a stale result (such as a
+  reply cut off at the old `max_tokens` budget and stored as "no tool") is never
+  reused.
 - Samples are independent draws, so reusing ones gathered at different times is
   statistically sound. Delete the cache file to force a fully fresh run.
 
@@ -250,6 +276,10 @@ guardrail is fine. It asks a plain yes/no (`ChatClient.ask_yes_no`) and can only
 ever **remove** a finding, never add one, so the deterministic core and the
 authoritative token costs stay LLM-free. Findings the model keeps are tagged
 `llm_confirmed` in the report.
+
+The question gets the same `max_tokens` budget as a tool pick (§1), so a model
+that thinks first still has room to answer. A reply cut off before any answer
+counts as a failed call, and a failed call keeps the deterministic finding.
 
 ---
 

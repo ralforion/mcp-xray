@@ -22,6 +22,9 @@ KINDS = {
     "jit_candidate",
     "hidden_injector",
     "result_size",
+    # How much of a sampling probe's work produced a measurement (counts only),
+    # so grading can tell "nothing failed" from "nothing was measured".
+    "probe_coverage",
 }
 
 
