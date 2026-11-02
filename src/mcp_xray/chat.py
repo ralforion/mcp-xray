@@ -37,9 +37,33 @@ def _parse_yes_no(text: str) -> bool | None:
     return None
 
 
+# Output budget for one probe call (a tool pick or a yes/no answer). Thinking
+# counts against max_tokens, and on models that always think (Claude Opus 5.5,
+# Sonnet 5.5, Fable 5.1) a small cap can run out before the call or the answer
+# is written. Only generated tokens are billed.
+_MAX_TOKENS = 4096
+
+# Appended to the system prompt when the API can't force a call (see pick_tool).
+_REQUIRE_CALL = (
+    "This request requires a tool call, even if no tool fits perfectly: "
+    "call exactly one, the tool that fits best."
+)
+
+
+def _rejects_forced_choice(err: Exception) -> bool:
+    """True for the 400 a model without forced tool use returns for
+    ``tool_choice`` ``any``/``tool`` ('tool_choice: type "tool" and "any" are
+    not supported for this model.'). Duck-typed so it needs no SDK import; any
+    other 400 is a real error and must still propagate."""
+    return getattr(err, "status_code", None) == 400 and "tool_choice" in str(err)
+
+
 class AnthropicChat:
     """Anthropic Messages API. ``allow_none`` -> tool_choice auto (may decline);
-    otherwise ``any`` (must call exactly one)."""
+    otherwise ``any`` (must call exactly one). Models that reject ``any``
+    (Claude Opus 5.5, Sonnet 5.5, Fable 5.1) get ``auto`` with the call required
+    in the system prompt instead; the first rejected request detects this and
+    ``forces_choice`` remembers it for the client's lifetime."""
 
     backend = ANTHROPIC
 
@@ -50,28 +74,52 @@ class AnthropicChat:
 
             client = anthropic.Anthropic()
         self._client = client
+        self.forces_choice = True
 
-    def pick_tool(self, tools: list[dict], system: str, query: str, *, allow_none: bool) -> str | None:
-        # API errors propagate to the caller - a failed call is NOT a model
-        # decision and must not be silently read as "no tool chosen."
+    def _pick(self, tools: list[dict], system: str, query: str, tool_choice: dict) -> str | None:
         resp = self._client.messages.create(
             model=self.model,
-            max_tokens=256,
+            max_tokens=_MAX_TOKENS,
             system=system,
             tools=tools,  # Anthropic consumes the neutral shape directly
-            tool_choice={"type": "auto"} if allow_none else {"type": "any"},
+            tool_choice=tool_choice,
             messages=[{"role": "user", "content": query}],
         )
         for block in getattr(resp, "content", []) or []:
             if getattr(block, "type", None) == "tool_use":
                 return block.name
+        if getattr(resp, "stop_reason", None) == "max_tokens":
+            # Cut off before any call: not a decision, so it must not be read
+            # as "no tool chosen" (a clean decline or a wrong pick).
+            raise RuntimeError(f"{self.model} hit max_tokens before choosing a tool")
         return None  # model legitimately called no tool
+
+    def pick_tool(self, tools: list[dict], system: str, query: str, *, allow_none: bool) -> str | None:
+        # API errors propagate to the caller - a failed call is NOT a model
+        # decision and must not be silently read as "no tool chosen."
+        if allow_none:
+            return self._pick(tools, system, query, {"type": "auto"})
+        if self.forces_choice:
+            try:
+                return self._pick(tools, system, query, {"type": "any"})
+            except Exception as e:
+                if not _rejects_forced_choice(e):
+                    raise
+                self.forces_choice = False
+        # No forced tool use on this model: require the call in the prompt and,
+        # since auto doesn't guarantee one, ask once more if none was made.
+        steered = f"{system}\n\n{_REQUIRE_CALL}"
+        for _ in range(2):
+            pick = self._pick(tools, steered, query, {"type": "auto"})
+            if pick is not None:
+                return pick
+        return None  # declined twice even when told a call is required
 
     def ask_yes_no(self, system: str, query: str) -> bool | None:
         # API errors propagate; None means only "answer wasn't yes/no."
         resp = self._client.messages.create(
             model=self.model,
-            max_tokens=8,
+            max_tokens=_MAX_TOKENS,
             system=system,
             messages=[{"role": "user", "content": query}],
         )
@@ -79,6 +127,10 @@ class AnthropicChat:
             getattr(b, "text", "") for b in getattr(resp, "content", []) or []
             if getattr(b, "type", None) == "text"
         )
+        if not text and getattr(resp, "stop_reason", None) == "max_tokens":
+            # Cut off before any answer: a failed call, not an answer that
+            # "wasn't yes/no."
+            raise RuntimeError(f"{self.model} hit max_tokens before answering")
         return _parse_yes_no(text)
 
 
